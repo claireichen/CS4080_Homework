@@ -1,0 +1,12 @@
+print "before";
+
+/* This is an outer comment.
+
+   /* This is a nested comment.
+      None of these words should become tokens.
+   */
+
+   This is part of the outer comment again.
+*/
+
+print "after";
