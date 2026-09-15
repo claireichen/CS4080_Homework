@@ -17,6 +17,18 @@ public final class RpnPrinter
   }
 
   @Override
+  public String visitConditionalExpr(
+      Expr.Conditional expression
+  ) {
+    return expression.condition.accept(this)
+        + " "
+        + expression.thenBranch.accept(this)
+        + " "
+        + expression.elseBranch.accept(this)
+        + " ?:";
+  }
+
+  @Override
   public String visitGroupingExpr(Expr.Grouping expression) {
     return expression.expression.accept(this);
   }

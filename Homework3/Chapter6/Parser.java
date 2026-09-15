@@ -39,11 +39,11 @@ public final class Parser {
    * The loop makes comma left-associative.
    */
   private Expr comma() {
-    Expr expression = equality();
+    Expr expression = conditional();
 
     while (match(COMMA)) {
       Token operator = previous();
-      Expr right = equality();
+      Expr right = conditional();
 
       expression = new Expr.Binary(
           expression,
@@ -52,8 +52,32 @@ public final class Parser {
       );
     }
 
-    return expression;
+      return expression;
   }
+
+  private Expr conditional() {
+  Expr expression = equality();
+
+  if (match(QUESTION)) {
+    Expr thenBranch = expression();
+
+    consume(
+        COLON,
+        "Expect ':' after then branch."
+    );
+
+    Expr elseBranch = conditional();
+
+    expression = new Expr.Conditional(
+        expression,
+        thenBranch,
+        elseBranch
+    );
+  }
+
+  return expression;
+}
+
 
   private Expr equality() {
     Expr expression = comparison();
