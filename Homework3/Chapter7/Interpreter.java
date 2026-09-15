@@ -97,21 +97,21 @@ public final class Interpreter
       }
 
       case PLUS -> {
-        if (left instanceof Double
-            && right instanceof Double) {
-          yield (double) left + (double) right;
+        if (left instanceof String
+            || right instanceof String) {
+            yield stringify(left) + stringify(right);
         }
 
-        if (left instanceof String
-            && right instanceof String) {
-          yield (String) left + (String) right;
+        if (left instanceof Double
+            && right instanceof Double) {
+            yield (double) left + (double) right;
         }
 
         throw new RuntimeError(
             expression.operator,
-            "Operands must be two numbers or two strings."
+            "Operands must be two numbers or include a string."
         );
-      }
+        }
 
       case BANG_EQUAL -> !isEqual(left, right);
       case EQUAL_EQUAL -> isEqual(left, right);
@@ -221,4 +221,25 @@ public final class Interpreter
 
     return left.equals(right);
   }
+
+  private String stringify(Object value) {
+    if (value == null) {
+        return "nil";
+    }
+
+    if (value instanceof Double number) {
+        String text = number.toString();
+
+        if (text.endsWith(".0")) {
+        text = text.substring(
+            0,
+            text.length() - 2
+        );
+        }
+
+        return text;
+    }
+
+    return value.toString();
+    }
 }
