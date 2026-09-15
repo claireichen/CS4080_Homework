@@ -83,8 +83,17 @@ public final class Interpreter
             right
         );
 
-        yield (double) left / (double) right;
-      }
+        double divisor = (double) right;
+
+        if (divisor == 0.0) {
+            throw new RuntimeError(
+                expression.operator,
+                "Cannot divide by zero."
+            );
+        }
+
+        yield (double) left / divisor;
+        }
 
       case STAR -> {
         checkNumberOperands(
