@@ -191,6 +191,55 @@ public final class Parser {
       return new Expr.Grouping(expression);
     }
 
+    // Equality operators without a left operand.
+  if (match(BANG_EQUAL, EQUAL_EQUAL)) {
+    error(
+        previous(),
+        "Missing left-hand operand."
+    );
+
+    equality();
+    return null;
+  }
+
+  // Comparison operators without a left operand.
+  if (match(
+      GREATER,
+      GREATER_EQUAL,
+      LESS,
+      LESS_EQUAL
+  )) {
+    error(
+        previous(),
+        "Missing left-hand operand."
+    );
+
+    comparison();
+    return null;
+  }
+
+  // Addition without a left operand.
+  if (match(PLUS)) {
+    error(
+        previous(),
+        "Missing left-hand operand."
+    );
+
+    term();
+    return null;
+  }
+
+  // Multiplication or division without a left operand.
+  if (match(SLASH, STAR)) {
+    error(
+        previous(),
+        "Missing left-hand operand."
+    );
+
+    factor();
+    return null;
+  }
+
     throw error(
         peek(),
         "Expect expression."
