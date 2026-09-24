@@ -5,6 +5,9 @@ import java.util.List;
 public final class Interpreter
     implements Expr.Visitor<Object>,
                Stmt.Visitor<Void> {
+  private static final Object UNINITIALIZED =
+    new Object();
+
   private Environment environment =
       new Environment();
 
@@ -72,7 +75,17 @@ public final class Interpreter
   public Object visitVariableExpr(
       Expr.Variable expression
   ) {
-    return environment.get(expression.name);
+    Object value =
+        environment.get(expression.name);
+
+    if (value == UNINITIALIZED) {
+      throw new RuntimeError(
+          expression.name,
+          "Variable must be initialized before use."
+      );
+    }
+
+    return value;
   }
 
   @Override
@@ -218,7 +231,7 @@ public final class Interpreter
 
   @Override
   public Void visitVarStmt(Stmt.Var statement) {
-    Object value = null;
+    Object value = UNINITIALIZED;
 
     if (statement.initializer != null) {
       value = evaluate(statement.initializer);
