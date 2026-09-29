@@ -22,13 +22,16 @@ public final class Resolver
 
   private static final class Variable {
     final Token name;
+    final int slot;
     VariableState state;
 
     Variable(
         Token name,
+        int slot,
         VariableState state
     ) {
       this.name = name;
+      this.slot = slot;
       this.state = state;
     }
   }
@@ -169,7 +172,10 @@ public final class Resolver
   ) {
     resolve(expression.value);
 
-    // Assignment is a write, not a read.
+    /*
+     * Assignment is only a write, so it does
+     * not count as using the variable.
+     */
     resolveLocal(
         expression,
         expression.name,
@@ -264,7 +270,6 @@ public final class Resolver
       }
     }
 
-    // A variable expression is a real read.
     resolveLocal(
         expression,
         expression.name,
@@ -312,7 +317,8 @@ public final class Resolver
 
         interpreter.resolve(
             expression,
-            distance
+            distance,
+            variable.slot
         );
 
         if (isRead) {
@@ -323,7 +329,7 @@ public final class Resolver
       }
     }
 
-    // Variables not found locally are globals.
+    // Not found locally, so it is global.
   }
 
   private void beginScope() {
@@ -361,10 +367,13 @@ public final class Resolver
       );
     }
 
+    int slot = scope.size();
+
     scope.put(
         name.lexeme,
         new Variable(
             name,
+            slot,
             VariableState.DECLARED
         )
     );
@@ -375,7 +384,7 @@ public final class Resolver
       return;
     }
 
-    scopes.get(scopes.size() - 1)
+    scopes.peek()
         .get(name.lexeme)
         .state = VariableState.DEFINED;
   }

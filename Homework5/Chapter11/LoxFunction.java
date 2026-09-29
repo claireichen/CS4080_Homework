@@ -32,13 +32,12 @@ public final class LoxFunction
     Environment environment =
         new Environment(closure);
 
-    for (int i = 0;
-         i < declaration.parameters.size();
-         i++) {
-      environment.define(
-          declaration.parameters.get(i).lexeme,
-          arguments.get(i)
-      );
+    /*
+     * Parameters are inserted in the same order
+     * as the slots assigned by the resolver.
+     */
+    for (Object argument : arguments) {
+      environment.define(argument);
     }
 
     try {

@@ -1,11 +1,11 @@
 package Chapter11;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class Environment {
-  private final Map<String, Object> values =
-      new HashMap<>();
+  private final List<Object> values =
+      new ArrayList<>();
 
   private final Environment enclosing;
 
@@ -17,62 +17,24 @@ public final class Environment {
     this.enclosing = enclosing;
   }
 
-  public void define(
-      String name,
-      Object value
-  ) {
-    values.put(name, value);
-  }
-
-  public Object get(Token name) {
-    if (values.containsKey(name.lexeme)) {
-      return values.get(name.lexeme);
-    }
-
-    if (enclosing != null) {
-      return enclosing.get(name);
-    }
-
-    throw new RuntimeError(
-        name,
-        "Undefined variable '" + name.lexeme + "'."
-    );
-  }
-
-  public void assign(
-      Token name,
-      Object value
-  ) {
-    if (values.containsKey(name.lexeme)) {
-      values.put(name.lexeme, value);
-      return;
-    }
-
-    if (enclosing != null) {
-      enclosing.assign(name, value);
-      return;
-    }
-
-    throw new RuntimeError(
-        name,
-        "Undefined variable '" + name.lexeme + "'."
-    );
+  public void define(Object value) {
+    values.add(value);
   }
 
   public Object getAt(
-    int distance,
-    String name
+      int distance,
+      int slot
   ) {
-    return ancestor(distance).values.get(name);
+    return ancestor(distance).values.get(slot);
   }
 
   public void assignAt(
       int distance,
-      Token name,
+      int slot,
       Object value
   ) {
-    ancestor(distance).values.put(
-        name.lexeme,
+    ancestor(distance).values.set(
+        slot,
         value
     );
   }

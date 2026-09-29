@@ -1,8 +1,8 @@
 package Chapter11;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class Interpreter
@@ -19,21 +19,35 @@ public final class Interpreter
     }
   }
 
-  private Environment environment =
-      new Environment();
+  /*
+   * Global variables continue to use names.
+   * Local variables use environments containing
+   * array-like lists.
+   */
+  private Environment environment;
 
-  private final Environment globals = environment;
+  private final Map<String, Object> globals =
+      new HashMap<>();
 
-private final Map<Expr, Integer> locals =
-    new HashMap<>();
+  /*
+   * Each local expression is associated with
+   * an environment distance and array slot.
+   */
+  private final Map<Expr, Integer> locals =
+      new HashMap<>();
 
-public void resolve(
-    Expr expression,
-    int depth
-) {
-  locals.put(expression, depth);
-}
-      
+  private final Map<Expr, Integer> slots =
+      new HashMap<>();
+
+  public void resolve(
+      Expr expression,
+      int depth,
+      int slot
+  ) {
+    locals.put(expression, depth);
+    slots.put(expression, slot);
+  }
+
   public void interpret(List<Stmt> statements) {
     try {
       for (Stmt statement : statements) {
@@ -73,12 +87,23 @@ public void resolve(
     if (distance != null) {
       environment.assignAt(
           distance,
-          expression.name,
+          slots.get(expression),
           value
       );
     } else {
-      globals.assign(
-          expression.name,
+      if (!globals.containsKey(
+          expression.name.lexeme
+      )) {
+        throw new RuntimeError(
+            expression.name,
+            "Undefined variable '"
+                + expression.name.lexeme
+                + "'."
+        );
+      }
+
+      globals.put(
+          expression.name.lexeme,
           value
       );
     }
@@ -177,6 +202,31 @@ public void resolve(
     return value;
   }
 
+  private Object lookUpVariable(
+      Token name,
+      Expr expression
+  ) {
+    Integer distance = locals.get(expression);
+
+    if (distance != null) {
+      return environment.getAt(
+          distance,
+          slots.get(expression)
+      );
+    }
+
+    if (globals.containsKey(name.lexeme)) {
+      return globals.get(name.lexeme);
+    }
+
+    throw new RuntimeError(
+        name,
+        "Undefined variable '"
+            + name.lexeme
+            + "'."
+    );
+  }
+
   @Override
   public Object visitUnaryExpr(
       Expr.Unary expression
@@ -250,7 +300,8 @@ public void resolve(
       case PLUS -> {
         if (left instanceof String
             || right instanceof String) {
-          yield stringify(left) + stringify(right);
+          yield stringify(left)
+              + stringify(right);
         }
 
         checkNumbers(
@@ -340,11 +391,7 @@ public void resolve(
         environment
     );
 
-    environment.define(
-        statement.name.lexeme,
-        function
-    );
-
+    define(statement.name, function);
     return null;
   }
 
@@ -395,11 +442,7 @@ public void resolve(
       value = evaluate(statement.initializer);
     }
 
-    environment.define(
-        statement.name.lexeme,
-        value
-    );
-
+    define(statement.name, value);
     return null;
   }
 
@@ -503,12 +546,15 @@ public void resolve(
 
     if (left instanceof String leftString
         && right instanceof String rightString) {
-      return leftString.compareTo(rightString);
+      return leftString.compareTo(
+          rightString
+      );
     }
 
     throw new RuntimeError(
         operator,
-        "Operands must be two numbers or two strings."
+        "Operands must be two numbers "
+            + "or two strings."
     );
   }
 
@@ -533,19 +579,14 @@ public void resolve(
     return value.toString();
   }
 
-  private Object lookUpVariable(
-    Token name,
-    Expr expression
+  private void define(
+      Token name,
+      Object value
   ) {
-    Integer distance = locals.get(expression);
-
-    if (distance != null) {
-      return environment.getAt(
-          distance,
-          name.lexeme
-      );
+    if (environment == null) {
+      globals.put(name.lexeme, value);
+    } else {
+      environment.define(value);
     }
-
-    return globals.get(name);
   }
 }

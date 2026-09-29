@@ -1,0 +1,29 @@
+{
+  var a = "outer";
+
+  {
+    var b = "inner";
+
+    print a;
+    print b;
+
+    a = "changed";
+  }
+
+  print a;
+}
+
+fun makeCounter(start) {
+  var count = start;
+
+  fun increment() {
+    count = count + 1;
+    print count;
+  }
+
+  return increment;
+}
+
+var counter = makeCounter(10);
+counter();
+counter();
