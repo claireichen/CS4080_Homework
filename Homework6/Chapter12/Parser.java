@@ -125,6 +125,23 @@ public final class Parser {
         "Expect " + kind + " name."
     );
 
+    /*
+     * Only methods may omit the parameter list.
+     * A null parameter list marks a getter.
+     */
+    if (kind.equals("method")
+        && !check(TokenType.LEFT_PAREN)) {
+      consume(
+          TokenType.LEFT_BRACE,
+          "Expect '{' before getter body."
+      );
+
+      return new Stmt.Function(
+          name,
+          new Expr.Function(null, block())
+      );
+    }
+
     return new Stmt.Function(
         name,
         functionBody(kind)

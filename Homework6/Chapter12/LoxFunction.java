@@ -35,7 +35,15 @@ public final class LoxFunction
 
   @Override
   public int arity() {
+    if (declaration.parameters == null) {
+      return 0;
+    }
+
     return declaration.parameters.size();
+  }
+
+  public boolean isGetter() {
+    return declaration.parameters == null;
   }
 
   @Override
@@ -50,8 +58,10 @@ public final class LoxFunction
      * Parameters are inserted in the same order
      * as the slots assigned by the resolver.
      */
-    for (Object argument : arguments) {
-      environment.define(argument);
+    if (declaration.parameters != null) {
+      for (Object argument : arguments) {
+        environment.define(argument);
+      }
     }
 
     try {

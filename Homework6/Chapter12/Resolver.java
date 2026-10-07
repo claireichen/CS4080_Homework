@@ -397,9 +397,11 @@ public final class Resolver
 
     beginScope();
 
-    for (Token parameter : function.parameters) {
-      declare(parameter);
-      define(parameter);
+    if (function.parameters != null) {
+      for (Token parameter : function.parameters) {
+        declare(parameter);
+        define(parameter);
+      }
     }
 
     resolve(function.body);

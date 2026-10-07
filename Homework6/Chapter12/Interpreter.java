@@ -160,7 +160,14 @@ public final class Interpreter
     Object object = evaluate(expression.object);
 
     if (object instanceof LoxInstance instance) {
-      return instance.get(expression.name);
+      Object result = instance.get(expression.name);
+
+      if (result instanceof LoxFunction function
+          && function.isGetter()) {
+        return function.call(this, List.of());
+      }
+
+      return result;
     }
 
     throw new RuntimeError(
