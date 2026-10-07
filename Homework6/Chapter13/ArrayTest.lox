@@ -1,0 +1,11 @@
+var values = Array(3);
+
+print values;
+print values.length;
+
+values.set(0, "first");
+values.set(1, "second");
+values.set(2, 42);
+
+print values.get(1);
+print values;

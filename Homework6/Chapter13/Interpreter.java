@@ -39,6 +39,60 @@ public final class Interpreter
   private final Map<Expr, Integer> slots =
       new HashMap<>();
 
+  public Interpreter() {
+    globals.put(
+        "Array",
+        new LoxCallable() {
+          @Override
+          public int arity() {
+            return 1;
+          }
+
+          @Override
+          public Object call(
+              Interpreter interpreter,
+              List<Object> arguments
+          ) {
+            Object argument =
+                arguments.get(0);
+
+            Token token = new Token(
+                TokenType.IDENTIFIER,
+                "Array",
+                null,
+                0
+            );
+
+            if (!(argument
+                instanceof Double size)) {
+              throw new RuntimeError(
+                  token,
+                  "Array size must be a number."
+              );
+            }
+
+            if (size < 0
+                || size != Math.rint(size)
+                || size > Integer.MAX_VALUE) {
+              throw new RuntimeError(
+                  token,
+                  "Array size must be a "
+                      + "non-negative integer."
+              );
+            }
+
+            return new LoxArray(
+                size.intValue()
+            );
+          }
+
+          @Override
+          public String toString() {
+            return "<native fn Array>";
+          }
+        }
+    );
+  }    
   public void resolve(
       Expr expression,
       int depth,
