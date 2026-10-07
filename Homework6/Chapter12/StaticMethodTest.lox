@@ -1,0 +1,27 @@
+class Math {
+  class square(n) {
+    return n * n;
+  }
+
+  class describe() {
+    return this;
+  }
+}
+
+print Math.square(3);
+print Math.describe();
+Math.pi = 3.14159;
+print Math.pi;
+
+class Box {
+  init(value) {
+    this.value = value;
+  }
+
+  show() {
+    print this.value;
+  }
+}
+
+var box = Box("ok");
+box.show();
