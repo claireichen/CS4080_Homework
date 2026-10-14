@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "chunk.h"
 #include "memory.h"
 
@@ -51,6 +54,26 @@ void writeChunk(Chunk* chunk, uint8_t byte, int line) {
 int addConstant(Chunk* chunk, Value value) {
   writeValueArray(&chunk->constants, value);
   return chunk->constants.count - 1;
+}
+
+void writeConstant(Chunk* chunk, Value value, int line) {
+  int index = addConstant(chunk, value);
+
+  if (index <= UINT8_MAX) {
+    writeChunk(chunk, OP_CONSTANT, line);
+    writeChunk(chunk, (uint8_t)index, line);
+    return;
+  }
+
+  if (index > 0xFFFFFF) {
+    fprintf(stderr, "Too many constants in one chunk.\n");
+    exit(1);
+  }
+
+  writeChunk(chunk, OP_CONSTANT_LONG, line);
+  writeChunk(chunk, (uint8_t)(index & 0xff), line);
+  writeChunk(chunk, (uint8_t)((index >> 8) & 0xff), line);
+  writeChunk(chunk, (uint8_t)((index >> 16) & 0xff), line);
 }
 
 int getLine(Chunk* chunk, int instruction) {
