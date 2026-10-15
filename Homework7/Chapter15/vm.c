@@ -48,11 +48,11 @@ static InterpretResult run(void) {
   (vm.ip += 3, (uint32_t)(vm.ip[-3] | (vm.ip[-2] << 8) | \
                           (vm.ip[-1] << 16)))
 #define READ_CONSTANT_LONG() (vm.chunk->constants.values[READ_LONG()])
-#define BINARY_OP(op)        \
-  do {                       \
-    Value b = pop();         \
-    Value a = pop();         \
-    push(a op b);            \
+#define BINARY_OP(op)                                    \
+  do {                                                   \
+    Value b = pop();                                     \
+    vm.stack[vm.stackCount - 1] =                        \
+        vm.stack[vm.stackCount - 1] op b;                \
   } while (false)
 
   for (;;) {
@@ -65,7 +65,8 @@ static InterpretResult run(void) {
         push(READ_CONSTANT_LONG());
         break;
       case OP_NEGATE:
-        push(-pop());
+        vm.stack[vm.stackCount - 1] =
+            -vm.stack[vm.stackCount - 1];
         break;
       case OP_ADD:
         BINARY_OP(+);

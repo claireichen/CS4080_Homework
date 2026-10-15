@@ -1,30 +1,31 @@
 #include <stdio.h>
+#include <time.h>
 
 #include "chunk.h"
 #include "vm.h"
 
 int main(void) {
+  const int negateCount = 100000000;
+
   initVM();
 
   Chunk chunk;
   initChunk(&chunk);
 
-  // Push 20 operands before performing any additions. A fixed eight-slot
-  // starting allocation must grow to hold this expression.
-  for (int value = 1; value <= 20; value++) {
-    writeConstant(&chunk, (Value)value, 123);
+  writeConstant(&chunk, 1.0, 123);
+  for (int i = 0; i < negateCount; i++) {
+    writeChunk(&chunk, OP_NEGATE, 124);
   }
-
-  for (int operation = 1; operation < 20; operation++) {
-    writeChunk(&chunk, OP_ADD, 124);
-  }
-
   writeChunk(&chunk, OP_RETURN, 125);
 
+  clock_t start = clock();
   InterpretResult result = interpret(&chunk);
+  clock_t end = clock();
+
   if (result == INTERPRET_OK) {
-    printf("maximum test depth: 20\n");
-    printf("final stack capacity: %d\n", vm.stackCapacity);
+    double seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    printf("negations: %d\n", negateCount);
+    printf("elapsed: %.6f seconds\n", seconds);
   }
 
   freeChunk(&chunk);
