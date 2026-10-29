@@ -3,6 +3,6 @@
 
 #include "common.h"
 
-bool runGlobalConstantTest(void);
+bool runGlobalSlotTest(void);
 
 #endif

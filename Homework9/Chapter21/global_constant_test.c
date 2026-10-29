@@ -8,7 +8,7 @@
 #include "value.h"
 #include "vm.h"
 
-bool runGlobalConstantTest(void) {
+bool runGlobalSlotTest(void) {
   const char* source =
       "var repeated = 1;\n"
       "print repeated;\n"
@@ -19,7 +19,7 @@ bool runGlobalConstantTest(void) {
   initChunk(&chunk);
   bool compiled = compile(source, &chunk);
 
-  int identifierEntries = 0;
+  int identifierConstants = 0;
   for (int i = 0; i < chunk.constants.count; i++) {
     Value constant = chunk.constants.values[i];
     if (!IS_STRING(constant)) continue;
@@ -27,16 +27,28 @@ bool runGlobalConstantTest(void) {
     ObjString* string = AS_STRING(constant);
     if (string->length == 8 &&
         memcmp(string->chars, "repeated", 8) == 0) {
-      identifierEntries++;
+      identifierConstants++;
     }
   }
 
-  printf("identifier entries for repeated: %d\n", identifierEntries);
+  printf("identifier constants for repeated: %d\n", identifierConstants);
   printf("total constants: %d\n", chunk.constants.count);
+  printf("global slots: %d\n", vm.globalValues.count);
+
+  bool hasOneUndefinedSlot =
+      vm.globalValues.count == 1 && IS_UNDEFINED(vm.globalValues.values[0]);
   freeChunk(&chunk);
 
-  if (!compiled || identifierEntries != 1) return false;
+  if (!compiled || identifierConstants != 0 || !hasOneUndefinedSlot) {
+    return false;
+  }
 
   printf("runtime output:\n");
-  return interpret(source) == INTERPRET_OK;
+  if (interpret(source) != INTERPRET_OK) return false;
+
+  Value finalValue = vm.globalValues.values[0];
+  printf("final slot value: ");
+  printValue(finalValue);
+  printf("\n");
+  return IS_NUMBER(finalValue) && AS_NUMBER(finalValue) == 2;
 }

@@ -4,7 +4,7 @@
 #include "common.h"
 #include "compiler.h"
 #include "scanner.h"
-#include "table.h"
+#include "vm.h"
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.h"
@@ -41,7 +41,6 @@ typedef struct {
 
 Parser parser;
 Chunk* compilingChunk;
-Table stringConstants;
 
 static Chunk* currentChunk() {
   return compilingChunk;
@@ -134,14 +133,20 @@ static ParseRule* getRule(TokenType type);
 static void parsePrecedence(Precedence precedence);
 
 static uint8_t identifierConstant(Token* name) {
-  ObjString* string = copyString(name->start, name->length);
+  ObjString* identifier = copyString(name->start, name->length);
   Value indexValue;
-  if (tableGet(&stringConstants, string, &indexValue)) {
+  if (tableGet(&vm.globalNames, identifier, &indexValue)) {
     return (uint8_t)AS_NUMBER(indexValue);
   }
 
-  uint8_t index = makeConstant(OBJ_VAL(string));
-  tableSet(&stringConstants, string, NUMBER_VAL(index));
+  if (vm.globalValues.count > UINT8_MAX) {
+    error("Too many global variables.");
+    return 0;
+  }
+
+  uint8_t index = (uint8_t)vm.globalValues.count;
+  writeValueArray(&vm.globalValues, UNDEFINED_VAL);
+  tableSet(&vm.globalNames, identifier, NUMBER_VAL(index));
   return index;
 }
 static uint8_t parseVariable(const char* errorMessage) {
@@ -360,8 +365,6 @@ bool compile(const char* source, Chunk* chunk) {
 
   parser.hadError = false;
   parser.panicMode = false;
-  initTable(&stringConstants);
-
   advance();
 
   while (!match(TOKEN_EOF)) {
@@ -369,6 +372,5 @@ bool compile(const char* source, Chunk* chunk) {
   }
 
   endCompiler();
-  freeTable(&stringConstants);
   return !parser.hadError;
 }

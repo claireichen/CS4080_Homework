@@ -61,8 +61,8 @@ static void runFile(const char* path) {
 int main(int argc, const char* argv[]) {
   initVM();
 
-  if (argc == 2 && strcmp(argv[1], "--test-global-constants") == 0) {
-    bool passed = runGlobalConstantTest();
+  if (argc == 2 && strcmp(argv[1], "--test-global-slots") == 0) {
+    bool passed = runGlobalSlotTest();
     freeVM();
     return passed ? 0 : 1;
   } else if (argc == 1) {
@@ -70,7 +70,7 @@ int main(int argc, const char* argv[]) {
   } else if (argc == 2) {
     runFile(argv[1]);
   } else {
-    fprintf(stderr, "Usage: clox [path | --test-global-constants]\n");
+    fprintf(stderr, "Usage: clox [path | --test-global-slots]\n");
     exit(64);
   }
 
