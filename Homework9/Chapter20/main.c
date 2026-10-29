@@ -5,6 +5,7 @@
 #include "common.h"
 #include "chunk.h"
 #include "debug.h"
+#include "hash_benchmark.h"
 #include "hash_key_test.h"
 #include "vm.h"
 
@@ -65,12 +66,22 @@ int main(int argc, const char* argv[]) {
     bool passed = runHashKeyTests();
     freeVM();
     return passed ? 0 : 1;
+  } else if (argc >= 2 && strcmp(argv[1], "--benchmark-hash") == 0) {
+    int count = argc == 3 ? atoi(argv[2]) : 100000;
+    if (count <= 0) {
+      fprintf(stderr, "Benchmark size must be positive.\n");
+      freeVM();
+      return 64;
+    }
+    runHashBenchmarks(count);
   } else if (argc == 1) {
     repl();
   } else if (argc == 2) {
     runFile(argv[1]);
   } else {
-    fprintf(stderr, "Usage: clox [path | --test-hash-keys]\n");
+    fprintf(stderr,
+            "Usage: clox [path | --test-hash-keys | "
+            "--benchmark-hash [count]]\n");
     exit(64);
   }
 
