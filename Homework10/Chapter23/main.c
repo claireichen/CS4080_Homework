@@ -6,6 +6,7 @@
 #include "chunk.h"
 #include "debug.h"
 #include "const_test.h"
+#include "continue_test.h"
 #include "global_constant_test.h"
 #include "long_local_test.h"
 #include "switch_test.h"
@@ -64,7 +65,11 @@ static void runFile(const char* path) {
 int main(int argc, const char* argv[]) {
   initVM();
 
-  if (argc == 2 && strcmp(argv[1], "--test-switch") == 0) {
+  if (argc == 2 && strcmp(argv[1], "--test-continue") == 0) {
+    bool passed = runContinueTest();
+    freeVM();
+    return passed ? 0 : 1;
+  } else if (argc == 2 && strcmp(argv[1], "--test-switch") == 0) {
     bool passed = runSwitchTest();
     freeVM();
     return passed ? 0 : 1;
@@ -86,8 +91,8 @@ int main(int argc, const char* argv[]) {
     runFile(argv[1]);
   } else {
     fprintf(stderr,
-            "Usage: clox [path | --test-switch | --test-long-locals | "
-            "--test-const | --test-global-slots]\n");
+            "Usage: clox [path | --test-continue | --test-switch | "
+            "--test-long-locals | --test-const | --test-global-slots]\n");
     exit(64);
   }
 

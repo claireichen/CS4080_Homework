@@ -54,9 +54,16 @@ typedef struct {
   int scopeDepth;
 } Compiler;
 
+typedef struct Loop {
+  struct Loop* enclosing;
+  int continueTarget;
+  int scopeDepth;
+} Loop;
+
 Parser parser;
 Chunk* compilingChunk;
 Compiler* current;
+Loop* currentLoop;
 
 static Chunk* currentChunk() {
   return compilingChunk;
@@ -451,6 +458,7 @@ ParseRule rules[] = {
   [TOKEN_CASE]          = {NULL,     NULL,   PREC_NONE},
   [TOKEN_CLASS]         = {NULL,     NULL,   PREC_NONE},
   [TOKEN_CONST]         = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_CONTINUE]      = {NULL,     NULL,   PREC_NONE},
   [TOKEN_DEFAULT]       = {NULL,     NULL,   PREC_NONE},
   [TOKEN_ELSE]          = {NULL,     NULL,   PREC_NONE},
   [TOKEN_FALSE]         = {literal,  NULL,   PREC_NONE},
@@ -552,7 +560,11 @@ static void whileStatement() {
 
   int exitJump = emitJump(OP_JUMP_IF_FALSE);
   emitByte(OP_POP);
+
+  Loop loop = {currentLoop, loopStart, current->scopeDepth};
+  currentLoop = &loop;
   statement();
+  currentLoop = loop.enclosing;
   emitLoop(loopStart);
 
   patchJump(exitJump);
@@ -593,7 +605,10 @@ static void forStatement() {
     patchJump(bodyJump);
   }
 
+  Loop loop = {currentLoop, loopStart, current->scopeDepth};
+  currentLoop = &loop;
   statement();
+  currentLoop = loop.enclosing;
   emitLoop(loopStart);
 
   if (exitJump != -1) {
@@ -602,6 +617,20 @@ static void forStatement() {
   }
 
   endScope();
+}
+static void continueStatement() {
+  if (currentLoop == NULL) {
+    error("Can't use 'continue' outside of a loop.");
+  }
+  consume(TOKEN_SEMICOLON, "Expect ';' after 'continue'.");
+
+  if (currentLoop == NULL) return;
+
+  for (int i = current->localCount - 1; i >= 0; i--) {
+    if (current->locals[i].depth <= currentLoop->scopeDepth) break;
+    emitByte(OP_POP);
+  }
+  emitLoop(currentLoop->continueTarget);
 }
 static void switchStatement() {
   beginScope();
@@ -678,6 +707,7 @@ static void synchronize() {
     switch (parser.current.type) {
       case TOKEN_CLASS:
       case TOKEN_CONST:
+      case TOKEN_CONTINUE:
       case TOKEN_FUN:
       case TOKEN_VAR:
       case TOKEN_FOR:
@@ -709,6 +739,8 @@ static void declaration() {
 static void statement() {
   if (match(TOKEN_PRINT)) {
     printStatement();
+  } else if (match(TOKEN_CONTINUE)) {
+    continueStatement();
   } else if (match(TOKEN_IF)) {
     ifStatement();
   } else if (match(TOKEN_SWITCH)) {
@@ -730,6 +762,7 @@ bool compile(const char* source, Chunk* chunk) {
   initScanner(source);
   Compiler compiler;
   initCompiler(&compiler);
+  currentLoop = NULL;
   compilingChunk = chunk;
 
   parser.hadError = false;
