@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "const_test.h"
 #include "global_constant_test.h"
+#include "long_local_test.h"
 #include "vm.h"
 
 static void repl() {
@@ -62,7 +63,11 @@ static void runFile(const char* path) {
 int main(int argc, const char* argv[]) {
   initVM();
 
-  if (argc == 2 && strcmp(argv[1], "--test-const") == 0) {
+  if (argc == 2 && strcmp(argv[1], "--test-long-locals") == 0) {
+    bool passed = runLongLocalTest();
+    freeVM();
+    return passed ? 0 : 1;
+  } else if (argc == 2 && strcmp(argv[1], "--test-const") == 0) {
     bool passed = runConstTest();
     freeVM();
     return passed ? 0 : 1;
@@ -76,7 +81,8 @@ int main(int argc, const char* argv[]) {
     runFile(argv[1]);
   } else {
     fprintf(stderr,
-            "Usage: clox [path | --test-const | --test-global-slots]\n");
+            "Usage: clox [path | --test-long-locals | --test-const | "
+            "--test-global-slots]\n");
     exit(64);
   }
 

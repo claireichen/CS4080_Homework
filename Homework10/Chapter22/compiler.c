@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include "compiler.h"
+#include "memory.h"
 #include "scanner.h"
 #include "vm.h"
 
@@ -47,8 +48,9 @@ typedef struct {
 } Local;
 
 typedef struct {
-  Local locals[UINT8_COUNT];
+  Local* locals;
   int localCount;
+  int localCapacity;
   int scopeDepth;
 } Compiler;
 
@@ -147,9 +149,15 @@ static ParseRule* getRule(TokenType type);
 static void parsePrecedence(Precedence precedence);
 
 static void initCompiler(Compiler* compiler) {
+  compiler->locals = NULL;
   compiler->localCount = 0;
+  compiler->localCapacity = 0;
   compiler->scopeDepth = 0;
   current = compiler;
+}
+
+static void freeCompiler(Compiler* compiler) {
+  FREE_ARRAY(Local, compiler->locals, compiler->localCapacity);
 }
 
 static void beginScope() {
@@ -190,9 +198,16 @@ static bool identifiersEqual(Token* a, Token* b) {
 }
 
 static void addLocal(Token name, bool isConst) {
-  if (current->localCount == UINT8_COUNT) {
+  if ((uint32_t)current->localCount == UINT16_COUNT) {
     error("Too many local variables in scope.");
     return;
+  }
+
+  if (current->localCount + 1 > current->localCapacity) {
+    int oldCapacity = current->localCapacity;
+    current->localCapacity = GROW_CAPACITY(oldCapacity);
+    current->locals = GROW_ARRAY(Local, current->locals, oldCapacity,
+                                 current->localCapacity);
   }
 
   Local* local = &current->locals[current->localCount++];
@@ -289,10 +304,19 @@ static void string(bool canAssign) {
   emitConstant(OBJ_VAL(copyString(parser.previous.start + 1,
                                   parser.previous.length - 2)));
 }
+static void emitLocalAccess(uint8_t shortOp, uint8_t longOp, int slot) {
+  if (slot <= UINT8_MAX) {
+    emitBytes(shortOp, (uint8_t)slot);
+  } else {
+    emitByte(longOp);
+    emitByte((uint8_t)((slot >> 8) & 0xff));
+    emitByte((uint8_t)(slot & 0xff));
+  }
+}
 static void namedVariable(Token name, bool canAssign) {
   uint8_t getOp;
   uint8_t setOp;
-  uint8_t arg;
+  int arg;
   bool isConst = false;
 
   int local = -1;
@@ -309,7 +333,7 @@ static void namedVariable(Token name, bool canAssign) {
   }
 
   if (local != -1) {
-    arg = (uint8_t)local;
+    arg = local;
     getOp = OP_GET_LOCAL;
     setOp = OP_SET_LOCAL;
   } else {
@@ -326,9 +350,19 @@ static void namedVariable(Token name, bool canAssign) {
       errorAt(&name, "Can't assign to a const variable.");
     }
     expression();
-    if (!isConst) emitBytes(setOp, arg);
+    if (!isConst) {
+      if (local != -1) {
+        emitLocalAccess(OP_SET_LOCAL, OP_SET_LOCAL_LONG, arg);
+      } else {
+        emitBytes(setOp, (uint8_t)arg);
+      }
+    }
   } else {
-    emitBytes(getOp, arg);
+    if (local != -1) {
+      emitLocalAccess(OP_GET_LOCAL, OP_GET_LOCAL_LONG, arg);
+    } else {
+      emitBytes(getOp, (uint8_t)arg);
+    }
   }
 }
 static void variable(bool canAssign) {
@@ -511,6 +545,7 @@ bool compile(const char* source, Chunk* chunk) {
   }
 
   endCompiler();
+  freeCompiler(&compiler);
   return !parser.hadError;
 }
 
