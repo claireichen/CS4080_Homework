@@ -15,6 +15,25 @@ VM vm; // [one]
 static Value clockValue(void) {
   return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
+static Value typeValue(Value value) {
+  const char* name;
+  if (IS_BOOL(value)) {
+    name = "boolean";
+  } else if (IS_NIL(value)) {
+    name = "nil";
+  } else if (IS_NUMBER(value)) {
+    name = "number";
+  } else if (IS_STRING(value)) {
+    name = "string";
+  } else if (IS_FUNCTION(value)) {
+    name = "function";
+  } else if (IS_NATIVE(value)) {
+    name = "native";
+  } else {
+    name = "object";
+  }
+  return OBJ_VAL(copyString(name, (int)strlen(name)));
+}
 #ifdef NO_NATIVE_ERRORS
 static Value clockNative(int argCount, Value* args) {
   (void)argCount;
@@ -25,6 +44,39 @@ static Value sqrtNative(int argCount, Value* args) {
   (void)argCount;
   if (!IS_NUMBER(args[0]) || AS_NUMBER(args[0]) < 0) return NIL_VAL;
   return NUMBER_VAL(sqrt(AS_NUMBER(args[0])));
+}
+static Value absNative(int argCount, Value* args) {
+  (void)argCount;
+  if (!IS_NUMBER(args[0])) return NIL_VAL;
+  return NUMBER_VAL(fabs(AS_NUMBER(args[0])));
+}
+static Value minNative(int argCount, Value* args) {
+  (void)argCount;
+  if (!IS_NUMBER(args[0]) || !IS_NUMBER(args[1])) return NIL_VAL;
+  return NUMBER_VAL(AS_NUMBER(args[0]) < AS_NUMBER(args[1])
+                        ? AS_NUMBER(args[0])
+                        : AS_NUMBER(args[1]));
+}
+static Value maxNative(int argCount, Value* args) {
+  (void)argCount;
+  if (!IS_NUMBER(args[0]) || !IS_NUMBER(args[1])) return NIL_VAL;
+  return NUMBER_VAL(AS_NUMBER(args[0]) > AS_NUMBER(args[1])
+                        ? AS_NUMBER(args[0])
+                        : AS_NUMBER(args[1]));
+}
+static Value powNative(int argCount, Value* args) {
+  (void)argCount;
+  if (!IS_NUMBER(args[0]) || !IS_NUMBER(args[1])) return NIL_VAL;
+  return NUMBER_VAL(pow(AS_NUMBER(args[0]), AS_NUMBER(args[1])));
+}
+static Value lenNative(int argCount, Value* args) {
+  (void)argCount;
+  if (!IS_STRING(args[0])) return NIL_VAL;
+  return NUMBER_VAL(AS_STRING(args[0])->length);
+}
+static Value typeNative(int argCount, Value* args) {
+  (void)argCount;
+  return typeValue(args[0]);
 }
 #else
 static bool nativeError(Value* args, const char* message) {
@@ -45,6 +97,55 @@ static bool sqrtNative(int argCount, Value* args) {
     return nativeError(args, "sqrt() expects a non-negative number.");
   }
   args[-1] = NUMBER_VAL(sqrt(AS_NUMBER(args[0])));
+  return true;
+}
+static bool absNative(int argCount, Value* args) {
+  (void)argCount;
+  if (!IS_NUMBER(args[0])) {
+    return nativeError(args, "abs() expects a number.");
+  }
+  args[-1] = NUMBER_VAL(fabs(AS_NUMBER(args[0])));
+  return true;
+}
+static bool minNative(int argCount, Value* args) {
+  (void)argCount;
+  if (!IS_NUMBER(args[0]) || !IS_NUMBER(args[1])) {
+    return nativeError(args, "min() expects two numbers.");
+  }
+  args[-1] = NUMBER_VAL(AS_NUMBER(args[0]) < AS_NUMBER(args[1])
+                            ? AS_NUMBER(args[0])
+                            : AS_NUMBER(args[1]));
+  return true;
+}
+static bool maxNative(int argCount, Value* args) {
+  (void)argCount;
+  if (!IS_NUMBER(args[0]) || !IS_NUMBER(args[1])) {
+    return nativeError(args, "max() expects two numbers.");
+  }
+  args[-1] = NUMBER_VAL(AS_NUMBER(args[0]) > AS_NUMBER(args[1])
+                            ? AS_NUMBER(args[0])
+                            : AS_NUMBER(args[1]));
+  return true;
+}
+static bool powNative(int argCount, Value* args) {
+  (void)argCount;
+  if (!IS_NUMBER(args[0]) || !IS_NUMBER(args[1])) {
+    return nativeError(args, "pow() expects two numbers.");
+  }
+  args[-1] = NUMBER_VAL(pow(AS_NUMBER(args[0]), AS_NUMBER(args[1])));
+  return true;
+}
+static bool lenNative(int argCount, Value* args) {
+  (void)argCount;
+  if (!IS_STRING(args[0])) {
+    return nativeError(args, "len() expects a string.");
+  }
+  args[-1] = NUMBER_VAL(AS_STRING(args[0])->length);
+  return true;
+}
+static bool typeNative(int argCount, Value* args) {
+  (void)argCount;
+  args[-1] = typeValue(args[0]);
   return true;
 }
 #endif
@@ -94,6 +195,12 @@ void initVM() {
 
   defineNative("clock", 0, clockNative);
   defineNative("sqrt", 1, sqrtNative);
+  defineNative("abs", 1, absNative);
+  defineNative("min", 2, minNative);
+  defineNative("max", 2, maxNative);
+  defineNative("pow", 2, powNative);
+  defineNative("len", 1, lenNative);
+  defineNative("type", 1, typeNative);
 }
 
 void freeVM() {

@@ -1,0 +1,8 @@
+fun clamp(value, low, high) {
+  return max(low, min(value, high));
+}
+
+print abs(-15);
+print pow(2, 10);
+print clamp(150, 0, 100);
+print clamp(-20, 0, 100);
