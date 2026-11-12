@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -11,11 +12,42 @@
 #include "vm.h"
 
 VM vm; // [one]
+static Value clockValue(void) {
+  return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
+}
+#ifdef NO_NATIVE_ERRORS
 static Value clockNative(int argCount, Value* args) {
   (void)argCount;
   (void)args;
-  return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
+  return clockValue();
 }
+static Value sqrtNative(int argCount, Value* args) {
+  (void)argCount;
+  if (!IS_NUMBER(args[0]) || AS_NUMBER(args[0]) < 0) return NIL_VAL;
+  return NUMBER_VAL(sqrt(AS_NUMBER(args[0])));
+}
+#else
+static bool nativeError(Value* args, const char* message) {
+  args[-1] = OBJ_VAL(copyString(message, (int)strlen(message)));
+  return false;
+}
+static bool clockNative(int argCount, Value* args) {
+  (void)argCount;
+  args[-1] = clockValue();
+  return true;
+}
+static bool sqrtNative(int argCount, Value* args) {
+  (void)argCount;
+  if (!IS_NUMBER(args[0])) {
+    return nativeError(args, "sqrt() expects a number.");
+  }
+  if (AS_NUMBER(args[0]) < 0) {
+    return nativeError(args, "sqrt() expects a non-negative number.");
+  }
+  args[-1] = NUMBER_VAL(sqrt(AS_NUMBER(args[0])));
+  return true;
+}
+#endif
 static void resetStack() {
   vm.stackTop = vm.stack;
   vm.frameCount = 0;
@@ -61,6 +93,7 @@ void initVM() {
   initTable(&vm.strings);
 
   defineNative("clock", 0, clockNative);
+  defineNative("sqrt", 1, sqrtNative);
 }
 
 void freeVM() {
@@ -111,11 +144,22 @@ static bool callValue(Value callee, int argCount) {
                        native->arity, argCount);
           return false;
         }
+#ifdef NO_NATIVE_ERRORS
         Value result = native->function(argCount,
                                         vm.stackTop - argCount);
         vm.stackTop -= argCount + 1;
         push(result);
         return true;
+#else
+        Value* args = vm.stackTop - argCount;
+        if (native->function(argCount, args)) {
+          vm.stackTop -= argCount;
+          return true;
+        }
+
+        runtimeError("%s", AS_CSTRING(args[-1]));
+        return false;
+#endif
       }
 
       default:

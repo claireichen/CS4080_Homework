@@ -1,0 +1,12 @@
+fun benchmark() {
+  var root = sqrt;
+  var result = 0;
+  var i = 0;
+  while (i < 20000000) {
+    result = root(81);
+    i = i + 1;
+  }
+  return result;
+}
+
+print benchmark();

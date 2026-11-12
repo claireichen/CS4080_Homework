@@ -10,9 +10,9 @@ runs="${RUNS:-5}"
 common_flags=(-std=c99 -O2 -Wall -Wextra -Werror)
 
 "$compiler" "${common_flags[@]}" -DNO_IP_CACHE "$chapter_dir"/*.c \
-  -o "$build_dir/clox-baseline"
+  -lm -o "$build_dir/clox-baseline"
 "$compiler" "${common_flags[@]}" "$chapter_dir"/*.c \
-  -o "$build_dir/clox-cached-ip"
+  -lm -o "$build_dir/clox-cached-ip"
 
 measure() {
   { /usr/bin/time -p "$1" "$2" >/dev/null; } 2>&1 |

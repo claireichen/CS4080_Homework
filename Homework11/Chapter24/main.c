@@ -6,6 +6,7 @@
 #include "chunk.h"
 #include "debug.h"
 #include "native_arity_test.h"
+#include "native_error_test.h"
 #include "vm.h"
 
 static void repl() {
@@ -61,7 +62,11 @@ static void runFile(const char* path) {
 int main(int argc, const char* argv[]) {
   initVM();
 
-  if (argc == 2 && strcmp(argv[1], "--test-native-arity") == 0) {
+  if (argc == 2 && strcmp(argv[1], "--test-native-errors") == 0) {
+    bool passed = runNativeErrorTest();
+    freeVM();
+    return passed ? 0 : 1;
+  } else if (argc == 2 && strcmp(argv[1], "--test-native-arity") == 0) {
     bool passed = runNativeArityTest();
     freeVM();
     return passed ? 0 : 1;
@@ -70,7 +75,9 @@ int main(int argc, const char* argv[]) {
   } else if (argc == 2) {
     runFile(argv[1]);
   } else {
-    fprintf(stderr, "Usage: clox [path | --test-native-arity]\n");
+    fprintf(stderr,
+            "Usage: clox [path | --test-native-errors | "
+            "--test-native-arity]\n");
     exit(64);
   }
 
